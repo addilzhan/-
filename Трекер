@@ -1,0 +1,65 @@
+#include <Wire.h>
+#include <Adafruit_MLX90614.h>  
+#include "MAX30105.h"           
+#include <Adafruit_MPU6050.h>  
+#include <Adafruit_Sensor.h>   
+#include <Grove_GSR.h>        
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();   
+MAX30105 particleSensor;                       
+Adafruit_MPU6050 mpu;                         
+GroveGSR gsr(A0);                          
+float bodyTemp;
+float pulseRate;
+int oxygenLevel;
+float accelX, accelY, accelZ;
+float gyroX, gyroY, gyroZ;
+int stressLevel;
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+  if (!mlx.begin()) {
+    Serial.println("MLX90614 not detected!");
+    while (1);
+  }
+  if (!particleSensor.begin(Wire, I2C_SPEED_STANDARD)) {
+    Serial.println("MAX30102 not detected!");
+    while (1);
+  }
+  if (!mpu.begin()) {
+    Serial.println("MPU6050 not detected!");
+    while (1);
+  }
+  gsr.setup();
+  Serial.println("All sensors initialized!");
+}
+void loop() {
+  bodyTemp = mlx.readObjectTempC();
+  if (particleSensor.check() == true) { 
+    pulseRate = particleSensor.getRed();  
+    oxygenLevel = particleSensor.getIR(); 
+  }
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+  accelX = a.acceleration.x;
+  accelY = a.acceleration.y;
+  accelZ = a.acceleration.z;
+  gyroX = g.gyro.x;
+  gyroY = g.gyro.y;
+  gyroZ = g.gyro.z;
+  stressLevel = gsr.getConductance();
+  Serial.println("------------ Sensor Data ------------");
+  Serial.print("Body Temp: "); Serial.print(bodyTemp); Serial.println(" °C");
+  Serial.print("Pulse Rate: "); Serial.print(pulseRate); Serial.println(" BPM");
+  Serial.print("Oxygen Level: "); Serial.print(oxygenLevel); Serial.println(" %");
+  Serial.print("Acceleration (X, Y, Z): ");
+  Serial.print(accelX); Serial.print(", ");
+  Serial.print(accelY); Serial.print(", ");
+  Serial.println(accelZ);
+  Serial.print("Gyroscope (X, Y, Z): ");
+  Serial.print(gyroX); Serial.print(", ");
+  Serial.print(gyroY); Serial.print(", ");
+  Serial.println(gyroZ);
+  Serial.print("Stress Level: "); Serial.print(stressLevel); Serial.println(" uS");
+  Serial.println("------------------------------------");
+  delay(1000); 
+}
